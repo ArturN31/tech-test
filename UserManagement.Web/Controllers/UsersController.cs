@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Threading.Tasks;
 using UserManagement.Services.Domain.Interfaces;
 using UserManagement.Web.Models.Users;
 
@@ -11,9 +12,15 @@ public class UsersController : Controller
     public UsersController(IUserService userService) => _userService = userService;
 
     [HttpGet]
-    public ViewResult List()
+    public async Task<ViewResult> List(string? accountActivityFilter)
     {
-        var items = _userService.GetAll().Select(p => new UserListItemViewModel
+        // If accountActivityFilter is null or empty, get all users
+        // Otherwise, filter users based on the accountActivityFilter value
+        IEnumerable<Models.User> users = string.IsNullOrEmpty(accountActivityFilter)
+            ? await _userService.GetAllAsync()
+            : await _userService.FilterByActiveAsync(accountActivityFilter);
+
+        var items = users.Select(p => new UserListItemViewModel
         {
             Id = p.Id,
             Forename = p.Forename,
