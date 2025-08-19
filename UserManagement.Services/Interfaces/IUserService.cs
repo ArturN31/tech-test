@@ -18,4 +18,32 @@ public interface IUserService
     /// </summary>
     /// <returns></returns>
     Task<IEnumerable<User>> GetAllAsync();
+
+    /// <summary>
+    /// Get User By Id
+    /// </summary>
+    /// <param name="user" ></param>
+    /// <returns></returns>
+    Task<User?> GetByIdAsync(long id);
+
+    /// <summary>
+    /// Add a new user
+    /// </summary>
+    /// <param name="user" ></param>
+    /// <returns></returns>
+    Task<User> AddAsync(User user);
+
+    /// <summary>
+    /// Edit user
+    /// </summary>
+    /// <param name="user" ></param>
+    /// <returns></returns>
+    Task<User> UpdateAsync(User user);
+
+    /// <summary>
+    /// Delete user
+    /// </summary>
+    /// <param name="id" ></param>
+    /// <returns></returns>
+    Task DeleteAsync(long id);
 }
