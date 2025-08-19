@@ -16,7 +16,7 @@ public class UserService : IUserService
     /// <summary>
     /// Return users by active state
     /// </summary>
-    /// <param name="isActive"></param>
+    /// <param name="accountActivityFilter"></param>
     /// <returns></returns>
     public async Task<IEnumerable<User>> FilterByActiveAsync(string? accountActivityFilter)
     {
@@ -34,5 +34,48 @@ public class UserService : IUserService
     public async Task<IEnumerable<User>> GetAllAsync()
     {
         return await _dataAccess.GetAllAsync<User>();
+    }
+
+    /// <summary>
+    /// Retrieve user from memory by id
+    /// <param name="id"></param>
+    /// </summary>
+    public async Task<User?> GetByIdAsync(long id)
+    {
+        return await _dataAccess.GetAll<User>()
+            .FirstOrDefaultAsync(u => u.Id == id);
+    }
+
+    /// <summary>
+    /// Add user to memory
+    /// <param name="user"></param>
+    /// </summary>
+    public async Task<User> AddAsync(User user)
+    {
+        await _dataAccess.CreateAsync(user);
+        return user;
+    }
+
+    /// <summary>
+    /// Update user data in memory
+    /// <param name="user"></param>
+    /// </summary>
+    public async Task<User> UpdateAsync(User user)
+    {
+        await _dataAccess.UpdateAsync(user);
+        return user;
+    }
+
+    /// <summary>
+    /// Delete user from memory
+    /// <param name="user"></param>
+    /// </summary>
+    public async Task DeleteAsync(long id)
+    {
+        var user = await GetByIdAsync(id);
+        if (user != null)
+        {
+            await _dataAccess.DeleteAsync(user);
+        }
     }
 }
