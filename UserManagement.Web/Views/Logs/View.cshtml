@@ -1,0 +1,32 @@
+﻿@model UserManagement.Web.Models.Logs.LogListItemViewModel
+
+<div class="d-grid justify-content-center gap-3 mb-2">
+    <h2 class="text-center">View Log</h2>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>UserId</th>
+                <th>Performed Action</th>
+                <th>TimeStamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    @Model.Id
+                </td>
+                <td>
+                    @Model.UserId
+                </td>
+                <td>
+                    @Model.PerformedAction
+                </td>
+                <td>
+                    @Model.TimeStamp.ToString("yyyy-MM-dd HH:mm:ss")
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>

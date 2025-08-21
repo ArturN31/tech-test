@@ -1,7 +1,10 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using UserManagement.Models;
 using UserManagement.Services.Domain.Interfaces;
+using UserManagement.Web.Models;
+using UserManagement.Web.Models.Logs;
 using UserManagement.Web.Models.Users;
 
 namespace UserManagement.WebMS.Controllers;
@@ -10,7 +13,12 @@ namespace UserManagement.WebMS.Controllers;
 public class UsersController : Controller
 {
     private readonly IUserService _userService;
-    public UsersController(IUserService userService) => _userService = userService;
+    private readonly ILogService _logService;
+    public UsersController(IUserService userService, ILogService logService)
+    {
+        _userService = userService;
+        _logService = logService;
+    }
 
     [HttpGet]
     public async Task<ViewResult> List(string? accountActivityFilter)
@@ -41,7 +49,7 @@ public class UsersController : Controller
 
     // View a user
     [HttpGet("view/{id}")]
-    public async Task<IActionResult> View(long id)
+    public async Task<IActionResult> View(long id, int page = 1, int logsAmount = 10)
     {
         // Fetch the user by id using the user service
         User? requiredUser = await _userService.GetByIdAsync(id);
@@ -51,6 +59,20 @@ public class UsersController : Controller
             // If user not found, return NotFound result
             return NotFound();
         }
+
+        // Log the action of viewing a user
+        Log? newLog = new Log
+        {
+            UserId = requiredUser.Id,
+            PerformedAction = "View User",
+            TimeStamp = System.DateTime.UtcNow
+        };
+        await _logService.AddLogAsync(newLog);
+
+        int totalUsersLogsCount = await _logService.CountUsersLogsAsync(requiredUser.Id);
+        IEnumerable<Log> paginatedUsersLogs = await _logService.GetUsersLogsPaginatedAsync(requiredUser.Id, page, logsAmount);
+
+        int totalPages = (int)Math.Ceiling((double)totalUsersLogsCount / logsAmount);
 
         // Create a UserListItemViewModel to display the user's details
         var viewUserModel = new UserListItemViewModel
@@ -63,8 +85,32 @@ public class UsersController : Controller
             DateOfBirth = requiredUser.DateOfBirth
         };
 
+        // Create a PaginationViewModel for the logs
+        var paginationViewModel = new PaginationViewModel
+        {
+            CurrentPage = page,
+            TotalPages = totalPages,
+            TotalItems = totalUsersLogsCount,
+            ItemsPerPage = logsAmount,
+            ControllerName = "Users",
+            ActionName = "View",
+        };
+
+        var viewLogModel = new UserDetailsViewModel
+        {
+            User = viewUserModel,
+            Logs = paginatedUsersLogs.Select(log => new LogListItemViewModel
+            {
+                Id = log.Id,
+                UserId = log.UserId,
+                PerformedAction = log.PerformedAction,
+                TimeStamp = log.TimeStamp
+            }).ToList(),
+            Pagination = paginationViewModel
+        };
+
         // Return the view with the user model
-        return View(viewUserModel);
+        return View(viewLogModel);
     }
 
     // Add a new user
@@ -83,7 +129,7 @@ public class UsersController : Controller
         if (!ModelState.IsValid)
         {
             return View(newUserData);
-        }
+        } 
 
         // If model state is valid, create a new user and add it to the service
         var newUser = new User
@@ -94,7 +140,18 @@ public class UsersController : Controller
             IsActive = newUserData.IsActive,
             DateOfBirth = newUserData.DateOfBirth
         };
+
         await _userService.AddAsync(newUser);
+
+        // Log the action of adding a new user
+        Log newLog = new Log
+        {
+            UserId = newUser.Id,
+            PerformedAction = "Add User",
+            TimeStamp = System.DateTime.UtcNow
+        };
+
+        await _logService.AddLogAsync(newLog);
 
         // Redirect to the list of users after adding
         return RedirectToAction(nameof(List));
@@ -149,6 +206,16 @@ public class UsersController : Controller
             return NotFound();
         }
 
+        // Log the action of editing a user
+        Log newLog = new Log
+        {
+            UserId = existingUser.Id,
+            PerformedAction = "Edit User",
+            TimeStamp = System.DateTime.UtcNow
+        };
+
+        await _logService.AddLogAsync(newLog);
+
         // Update the existing user with the new values
         existingUser.Forename = newUserData.Forename;
         existingUser.Surname = newUserData.Surname;
@@ -175,6 +242,16 @@ public class UsersController : Controller
             // If user not found, return NotFound result
             return NotFound();
         }
+
+        // Log the action of deleting a user
+        Log newLog = new Log
+        {
+            UserId = existingUser.Id,
+            PerformedAction = "Delete User",
+            TimeStamp = System.DateTime.UtcNow
+        };
+
+        await _logService.AddLogAsync(newLog);
 
         // Delete the user from the user service
         await _userService.DeleteAsync(existingUser.Id);
