@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserManagement.Services.Domain.Implementations;
+using UserManagement.Services.Implementations;
 using UserManagement.Web.Models.Users;
 using UserManagement.WebMS.Controllers;
 
@@ -12,10 +13,9 @@ namespace UserManagement.Data.Tests;
 public class UserControllerTests
 {
     /// <summary>
-    /// Creates a new instance of the UserService with an in-memory database context.
-    /// This is useful for integration tests.
+    /// Creates a new instance of the UserService and LogService with an in-memory database context.
     /// </summary>
-    public static UserService CreateUserService(out DataContext context)
+    public static (UserService, LogService) CreateServices(out DataContext context)
     {
         // Sets up an in-memory database with a unique name for testing purposes.
         var databaseName = "UserManagement.Data.UsersController.Tests";
@@ -25,7 +25,9 @@ public class UserControllerTests
 
         // Creates a new instance of DataContext using the options defined above.
         context = new DataContext(options);
-        return new UserService(context);
+        var userService = new UserService(context);
+        var logService = new LogService(context);
+        return (userService, logService);
     }
 
     [Theory]
@@ -35,8 +37,8 @@ public class UserControllerTests
     public async Task List_AccountActivityFilter_ReturnsFilteredUsers(string accountActivityFilter)
     {
         // Arrange: Create a UserService and a UsersController instance
-        var userService = CreateUserService(out var context);
-        var controller = new UsersController(userService);
+        var (userService, logService) = CreateServices(out var context);
+        var controller = new UsersController(userService, logService);
 
         // Act: Call the List method with the provided accountActivityFilter
         var result = await controller.List(accountActivityFilter);
@@ -56,26 +58,26 @@ public class UserControllerTests
     [Fact]
     public async Task View_ValidId_ReturnsUserDetails()
     {
-        var userService = CreateUserService(out var context);
-        var controller = new UsersController(userService);
+        var (userService, logService) = CreateServices(out var context);
+        var controller = new UsersController(userService, logService);
         var userId = 1;
         var result = await controller.View(userId);
         var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-        var model = viewResult.Model.Should().BeOfType<UserListItemViewModel>().Subject;
+        var model = viewResult.Model.Should().BeOfType<UserDetailsViewModel>().Subject;
 
         // Verify that the model contains the expected user details
-        model.Id.Should().Be(userId);
-        model.Forename.Should().NotBeNullOrEmpty();
-        model.Surname.Should().NotBeNullOrEmpty();
-        model.Email.Should().NotBeNullOrEmpty();
-        model.DateOfBirth.Should().NotBeNull();
+        model.User.Id.Should().Be(userId);
+        model.User.Forename.Should().NotBeNullOrEmpty();
+        model.User.Surname.Should().NotBeNullOrEmpty();
+        model.User.Email.Should().NotBeNullOrEmpty();
+        model.User.DateOfBirth.Should().NotBeNull();
     }
 
     [Fact]
     public async Task View_InvalidId_ReturnsNotFound()
     {
-        var userService = CreateUserService(out var context);
-        var controller = new UsersController(userService);
+        var (userService, logService) = CreateServices(out var context);
+        var controller = new UsersController(userService, logService);
         var invalidUserId = 20;
         var result = await controller.View(invalidUserId);
 
@@ -86,8 +88,8 @@ public class UserControllerTests
     [Fact]
     public async Task Add_ValidUserModel_MustReturnNewUser()
     {
-        var userService = CreateUserService(out var context);
-        var controller = new UsersController(userService);
+        var (userService, logService) = CreateServices(out var context);
+        var controller = new UsersController(userService, logService);
         var newUser = new UserListItemViewModel
         {
             Forename = "Test",
@@ -105,8 +107,8 @@ public class UserControllerTests
     [Fact]
     public async Task Add_InvalidUserModel_ReturnsViewWithModel()
     {
-        var userService = CreateUserService(out var context);
-        var controller = new UsersController(userService);
+        var (userService, logService) = CreateServices(out var context);
+        var controller = new UsersController(userService, logService);
         controller.ModelState.AddModelError("Forename", "Required");
         var newUser = new UserListItemViewModel
         {
@@ -124,8 +126,8 @@ public class UserControllerTests
     [Fact]
     public async Task Edit_ValidUserModel_MustReturnUpdatedUser()
     {
-        var userService = CreateUserService(out var context);
-        var controller = new UsersController(userService);
+        var (userService, logService) = CreateServices(out var context);
+        var controller = new UsersController(userService, logService);
         var existingUser = await userService.GetByIdAsync(2);
 
         if(existingUser != null)
@@ -148,8 +150,8 @@ public class UserControllerTests
     [Fact]
     public async Task Edit_InvalidUserModel_ReturnsViewWithModel()
     {
-        var userService = CreateUserService(out var context);
-        var controller = new UsersController(userService);
+        var (userService, logService) = CreateServices(out var context);
+        var controller = new UsersController(userService, logService);
         var existingUser = await userService.GetByIdAsync(1);
         if(existingUser != null)
         {
@@ -174,8 +176,8 @@ public class UserControllerTests
     [Fact]
     public async Task Edit_GetNonExistingUser_ShouldReturnNotFoung()
     {
-        var userService = CreateUserService(out var context);
-        var controller = new UsersController(userService);
+        var (userService, logService) = CreateServices(out var context);
+        var controller = new UsersController(userService, logService);
         var nonExistingUserId = 20;
         var result = await controller.Edit(nonExistingUserId);
         result.Should().BeOfType<NotFoundResult>();
@@ -184,8 +186,8 @@ public class UserControllerTests
     [Fact]
     public async Task Delete_ValidId_ReturnsRedirectToList()
     {
-        var userService = CreateUserService(out var context);
-        var controller = new UsersController(userService);
+        var (userService, logService) = CreateServices(out var context);
+        var controller = new UsersController(userService, logService);
         var userId = 1;
         var result = await controller.Delete(userId);
 
@@ -198,8 +200,8 @@ public class UserControllerTests
     [Fact]
     public async Task Delete_InvalidId_ReturnsNotFound()
     {
-        var userService = CreateUserService(out var context);
-        var controller = new UsersController(userService);
+        var (userService, logService) = CreateServices(out var context);
+        var controller = new UsersController(userService, logService);
         var invalidUserId = 20;
         var result = await controller.Delete(invalidUserId);
 

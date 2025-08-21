@@ -1,0 +1,91 @@
+﻿@model UserManagement.Web.Models.PaginationViewModel
+
+<div>
+    <ul class="pagination">
+        @if (Model.CurrentPage > 1)
+        {
+            <li class="page-item">
+                <a class="page-link" asp-controller="@Model.ControllerName" asp-action="@Model.ActionName" asp-route-page="@(Model.CurrentPage - 1)">Previous</a>
+            </li>
+        }
+
+        @{
+            var range = 2; // How many pages to show on each side of the current page.
+            var start = Model.CurrentPage - range;
+            var end = Model.CurrentPage + range;
+
+            // Handle boundary cases.
+            // If the current page is less than or equal to the range, adjust the start.
+            if (start <= 0)
+            {
+                end -= start - 1;
+                start = 1;
+            }
+
+            // If the end exceeds the total pages, adjust the end and start accordingly.
+            // This ensures we don't show more pages than available.
+            if (end > Model.TotalPages)
+            {
+                start -= end - Model.TotalPages;
+                end = Model.TotalPages;
+            }
+
+            // Ensure start is at least 1.
+            // This prevents negative or zero page numbers.
+            if (start < 1)
+            {
+                start = 1;
+            }
+        }
+
+        @* First Page and Ellipsis *@
+        @if (start > 1)
+        {
+            // Always show the first page link.
+            <li class="page-item">
+                <a class="page-link" asp-controller="@Model.ControllerName" asp-action="@Model.ActionName" asp-route-page="1">1</a>
+            </li>
+
+            // Show ellipsis if there are pages before the start.
+            if (start > 2)
+            {
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+            }
+        }
+
+        @* Page Numbers in a Limited Range *@
+        @for (int i = start; i <= end; i++)
+        {
+            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                <a class="page-link" asp-controller="@Model.ControllerName" asp-action="@Model.ActionName" asp-route-page="@i">@i</a>
+            </li>
+        }
+
+        @* Last Page and Ellipsis *@
+        @if (end < Model.TotalPages)
+        {
+            // Show ellipsis if there are pages after the end.
+            if (end < Model.TotalPages - 1)
+            {
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+            }
+
+            // Always show the last page link.
+            <li class="page-item">
+                <a class="page-link" asp-controller="@Model.ControllerName" asp-action="@Model.ActionName" asp-route-page="@Model.TotalPages">@Model.TotalPages</a>
+            </li>
+        }
+
+        @if (Model.CurrentPage < Model.TotalPages)
+        {
+            // Show the "Next" button only if there are more pages.
+            <li class="page-item">
+                <a class="page-link" asp-controller="@Model.ControllerName" asp-action="@Model.ActionName" asp-route-page="@(Model.CurrentPage + 1)">Next</a>
+            </li>
+        }
+    </ul>
+</div>
