@@ -1,0 +1,90 @@
+﻿@page "/"
+
+@using UserManagement.Blazor.Providers
+@inject AuthenticationService Auth
+
+<PageTitle>Home</PageTitle>
+
+<div>
+    <h1>User Management Technical Exercise</h1>
+    <p>
+        The exercise is an ASP.NET Core web application backed by Entity Framework Core, which faciliates management of some fictional users.
+        We recommend that you use <a href="https://visualstudio.microsoft.com/downloads">Visual Studio (Community Edition)</a> or <a href="https://code.visualstudio.com/Download">Visual Studio Code</a> to run and modify the application.
+    </p>
+    <p><strong>The application uses an in-memory database, so changes will not be persisted between executions.</strong></p>
+
+    <h2>The Exercise</h2>
+    <p>Complete as many of the tasks below as you feel comfortable with. These are split into 4 levels of difficulty:</p>
+    <ul>
+        <li><strong>Standard</strong> - Functionality that is common when working as a web developer</li>
+        <li><strong>Advanced</strong> - Slightly more technical tasks and problem solving</li>
+        <li><strong>Expert</strong> - Tasks with a higher level of problem solving and architecture needed</li>
+        <li><strong>Platform</strong> - Tasks with a focus on infrastructure and scaleability, rather than application development.</li>
+    </ul>
+
+    <h3>1. Filters Section (Standard)</h3>
+    <p>The users page contains 3 buttons below the user listing - <strong>Show All</strong>, <strong>Active Only</strong> and <strong>Non Active</strong>. Show All has already been implemented. Implement the remaining buttons using the following logic:</p>
+    <ul>
+        <li>Active Only – This should show only users where their <code>IsActive</code> property is set to <code>true</code></li>
+        <li>Non Active – This should show only users where their <code>IsActive</code> property is set to <code>false</code></li>
+    </ul>
+
+    <h3>2. User Model Properties (Standard)</h3>
+    <p>Add a new property to the <code>User</code> class in the system called <code>DateOfBirth</code> which is to be used and displayed in relevant sections of the app.</p>
+
+    <h3>3. Actions Section (Standard)</h3>
+    <p>Create the code and UI flows for the following actions:</p>
+    <ul>
+        <li><strong>Add</strong> – A screen that allows you to create a new user and return to the list</li>
+        <li><strong>View</strong> - A screen that displays the information about a user</li>
+        <li><strong>Edit</strong> – A screen that allows you to edit a selected user from the list</li>
+        <li><strong>Delete</strong> – A screen that allows you to delete a selected user from the list</li>
+    </ul>
+    <p>Each of these screens should contain appropriate data validation, which is communicated to the end user.</p>
+
+    <h3>4. Data Logging (Advanced)</h3>
+    <p>Extend the system to capture log information regarding primary actions performed on each user in the app:</p>
+    <ul>
+        <li>In the <strong>View</strong> screen there should be a list of all actions that have been performed against that user.</li>
+        <li>There should be a new <strong>Logs</strong> page, containing a list of log entries across the application.</li>
+        <li>In the Logs page, the user should be able to click into each entry to see more detail about it.</li>
+        <li>In the Logs page, think about how you can provide a good user experience - even when there are many log entries.</li>
+    </ul>
+
+    <h3>5. Extend the Application (Expert)</h3>
+    <p>Make a significant architectural change that improves the application. Structurally, the user management application is very simple, and there are many ways it can be made more maintainable, scalable or testable. Some ideas are:</p>
+    <ul>
+        <li>Re-implement the UI using a client side framework connecting to an API. Use of Blazor is preferred, but if you are more familiar with other frameworks, feel free to use them.</li>
+        <li>Update the data access layer to support asynchronous operations.</li>
+        <li>Implement authentication and login based on the users being stored.</li>
+        <li>Implement bundling of static assets.</li>
+        <li>Update the data access layer to use a real database, and implement database schema migrations.</li>
+    </ul>
+
+    <h3>6. Future-Proof the Application (Platform)</h3>
+    <p>Add additional layers to the application that will ensure that it is scaleable with many users or developers. For example:</p>
+    <ul>
+        <li>Add CI pipelines to run tests and build the application.</li>
+        <li>Add CD pipelines to deploy the application to cloud infrastructure.</li>
+        <li>Add IaC to support easy deployment to new environments.</li>
+        <li>Introduce a message bus and/or worker to handle long-running operations.</li>
+    </ul>
+
+    <h2>Additional Notes</h2>
+    <ul>
+        <li>Please feel free to change or refactor any code that has been supplied within the solution and think about clean maintainable code and architecture when extending the project.</li>
+        <li>If any additional packages, tools or setup are required to run your completed version, please document these thoroughly.</li>
+    </ul>
+
+    <p>
+        <NavLink href="/Users" class="btn btn-primary">To User List</NavLink>
+    </p>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.CheckLoginStatusAsync();
+        StateHasChanged();
+    }
+}

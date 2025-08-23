@@ -1,0 +1,92 @@
+﻿@using UserManagement.Blazor.Providers
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+@inject AuthenticationService Auth
+@implements IDisposable
+
+<div>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container-fluid">
+                <NavLink href="/" class="navbar-brand">User Management</NavLink>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <NavLink href="/" class="nav-link text-dark">Home</NavLink>
+                        </li>
+                        @if (Auth.IsLoggedIn)
+                        {
+                            <li class="nav-item">
+                                <NavLink href="/Users" class="nav-link text-dark">Users</NavLink>
+                            </li>
+                            <li class="nav-item">
+                                <NavLink href="/Logs" class="nav-link text-dark">Logs</NavLink>
+                            </li>
+                        }
+                    </ul>
+
+                    <ul class="navbar-nav">
+                        @if (Auth.IsLoggedIn)
+                        {
+                            <li class="nav-item">
+                                <button class="btn btn-link nav-link text-dark" @onclick="HandleLogout">
+                                    Logout
+                                </button>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <NavLink href="/Login" class="nav-link text-dark">Login</NavLink>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <main role="main" class="pb-3">
+            @Body
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+        </div>
+    </footer>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Check the login status when the component is initialized.
+        await Auth.CheckLoginStatusAsync();
+        // Subscribe to the state change event to re-render the UI.
+        Auth.OnAuthStateChanged += StateHasChanged;
+    }
+
+    /// <summary>
+    /// Handles the logout action.
+    /// </summary>
+    private async Task HandleLogout()
+    {
+        await Auth.LogoutAsync();
+        // Redirect to the home page after a successful logout.
+        Nav.NavigateTo("/", true); // 'true' forces a full page reload to clear all state
+    }
+
+    /// <summary>
+    /// Disposes the component and unsubscribes from the event.
+    /// This prevents memory leaks.
+    /// </summary>
+    public void Dispose()
+    {
+        Auth.OnAuthStateChanged -= StateHasChanged;
+    }
+}

@@ -12,10 +12,10 @@ public class LogListViewModel
 public class LogListItemViewModel
 {
     [Required]
-    public long Id { get; set; }
+    public required long Id { get; set; }
 
     [Required]
-    public long UserId { get; set; }
+    public required string UserId { get; set; }
 
     [Required]
     public string PerformedAction { get; set; } = string.Empty;

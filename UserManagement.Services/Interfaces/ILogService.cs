@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using UserManagement.Models;
+using UserManagement.Data.Models;
 
 namespace UserManagement.Services.Domain.Interfaces;
 
@@ -23,14 +23,14 @@ public interface ILogService
     /// </summary>
     /// <param name="userId"></param>
     /// <returns></returns>
-    Task<int> CountUsersLogsAsync(long userId);
+    Task<int> CountUsersLogsAsync(string userId, string? filter = null);
 
     /// <summary>
     /// Return a paginated list of user's logs
     /// </summary>
     /// <param name="userId"></param>
     /// <returns></returns>
-    Task<IEnumerable<Log>> GetUsersLogsPaginatedAsync(long userId, int page, int logsAmount);
+    Task<IEnumerable<Log>> GetUsersLogsPaginatedAsync(string userId, int page, int logsAmount, string? filter = null);
 
     /// <summary>
     /// Retrieves a log entry by its unique identifier.

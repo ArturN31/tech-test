@@ -1,0 +1,73 @@
+﻿@page "/logs/{LogId:long}"
+
+@using UserManagement.Data.Models
+@using UserManagement.Blazor.Providers
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavManager
+@inject AuthenticationService Auth
+
+<div class="d-grid justify-content-center gap-3 mb-2">
+    <h2 class="text-center">View Log</h2>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Performed Action</th>
+                <th>TimeStamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (log != null)
+            {
+                <tr>
+                    <td>
+                        @log.PerformedAction
+                    </td>
+                    <td>
+                        @log.TimeStamp.ToString("yyyy-MM-dd HH:mm:ss")
+                    </td>
+                </tr>
+            }
+            else
+            {
+                <tr>
+                    <td colspan="4" class="text-center">Loading...</td>
+                </tr>
+
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter]
+    public long? LogId { get; set; }
+
+    private Log? log;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.CheckLoginStatusAsync();
+        if (!Auth.IsLoggedIn)
+        {
+            NavManager.NavigateTo("/login", false);
+            return; // exit to prevent loading page content
+        }
+
+        await GetLog(LogId);
+    }
+
+    private async Task GetLog(long? logId)
+    {
+        try
+        {
+            var apiEndpoint = $"api/logs/{logId}";
+            log = await Http.GetFromJsonAsync<Log>(apiEndpoint);
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.Error.WriteLine($"Error fetching logs: {ex.Message}");
+        }
+    }
+}
