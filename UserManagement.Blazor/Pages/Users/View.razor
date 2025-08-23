@@ -51,7 +51,7 @@
                                         aria-expanded="false" id="btnToggleActions">
                                     Actions
                                 </button>
-                                <ul class="dropdown-menu" aria-labelledby="btnToggleActions">
+                                <ul class="dropdown-menu text-center" aria-labelledby="btnToggleActions">
                                     <li><NavLink href="@($"/users/edit/{user.Id}")" class="dropdown-item">Edit</NavLink></li>
                                     <li>
                                         <button onclick="@(() => DeleteUser(user.Id))" type="button" class="dropdown-item">Delete</button>

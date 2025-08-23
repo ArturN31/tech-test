@@ -10,6 +10,7 @@
         "outputFileName": "wwwroot/js/site.min.js",
         "inputFiles": [
             "wwwroot/js/site.js",
+            "wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.min.js",
             "wwwroot/lib/jquery/dist/jquery.js",
             "wwwroot/lib/jquery-validation/dist/*.js",
             "wwwroot/lib/jquery-validation-unobtrusive/*.js"

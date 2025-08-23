@@ -81,8 +81,15 @@ builder.Services.AddScoped<ILogService, LogService>();
 builder.Services.AddSingleton<ITokenBlacklistService, TokenBlacklistService>();
 
 // Register DbContext with InMemory Database
+//builder.Services.AddDbContext<DataContext>(options =>
+//    options.UseInMemoryDatabase("UserManagement.Data.DataContext"));
+
+//Register the SQL Server
 builder.Services.AddDbContext<DataContext>(options =>
-    options.UseInMemoryDatabase("UserManagement.Data.DataContext"));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        // This tells EF Core where to store the migration files
+        b => b.MigrationsAssembly("UserManagement.API")));
 
 
 builder.Services.AddScoped<IDataContext, DataContext>();
@@ -119,8 +126,14 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<DataContext>();
 
-    // Call the static seeder method to populate the database
-    DataSeeder.SeedDatabase(context);
+    // This applies any pending migrations to the database
+    context.Database.Migrate();
+
+    // The seeder now runs only if the Users table is empty
+    if (!context.Users.Any())
+    {
+        DataSeeder.SeedDatabase(context);
+    }
 }
 
 app.Run();
