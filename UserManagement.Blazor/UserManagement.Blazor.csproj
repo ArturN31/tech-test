@@ -15,4 +15,8 @@
   <ItemGroup>
     <ProjectReference Include="..\UserManagement.Data\UserManagement.Data.csproj" />
   </ItemGroup>
+
+  <Target Name="AssetsBundler" BeforeTargets="BeforeBuild">
+    <Exec Command="dotnet bundle" />
+  </Target>
 </Project>

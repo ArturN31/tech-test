@@ -10,16 +10,17 @@
 
     <EditForm Model="login" OnValidSubmit="HandleSubmit" class="d-grid border p-4 rounded-3 shadow gap-2">
         <DataAnnotationsValidator />
-        <ValidationSummary />
 
         <div class="form-group">
             <label for="email" class="form-label">Email</label>
             <InputText id="email" class="form-control" @bind-Value="login.Email"/>
+            <ValidationMessage For="@(() => login.Email)" class="text-danger" />
         </div>
 
         <div class="form-group">
             <label for="password" class="form-label">Password</label>
             <InputText id="password" type="password" class="form-control" @bind-Value="login.Password" />
+            <ValidationMessage For="@(() => login.Password)" class="text-danger" />
         </div>
 
         <div class="d-flex gap-3 justify-content-end mt-2">
@@ -27,6 +28,11 @@
             <button type="button" class="btn btn-secondary" @onclick="@(() => NavManager.NavigateTo("/"))">Cancel</button>
         </div>
     </EditForm>
+
+    <div class="border border-1 text-center mt-2 pt-3 bg-white">
+        <p>Email: ploew@example.com</p>
+        <p>Password: P@ssword1</p>
+    </div>
 </div>
 
 @code {
