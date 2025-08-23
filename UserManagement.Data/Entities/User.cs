@@ -1,19 +1,15 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Identity;
 
-namespace UserManagement.Models;
+namespace UserManagement.Data.Models;
 
-public class User
+public class User : IdentityUser
 {
-    [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public long Id { get; set; }
     [Required]
     public string Forename { get; set; } = default!;
     [Required]
     public string Surname { get; set; } = default!;
-    [Required]
-    public string Email { get; set; } = default!;
     public bool IsActive { get; set; }
-    public DateOnly? DateOfBirth { get; set; } = default!;
+    public DateTime? DateOfBirth { get; set; }
 }

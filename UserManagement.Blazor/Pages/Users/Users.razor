@@ -1,0 +1,165 @@
+﻿@page "/Users"
+
+@using UserManagement.Data.Models
+@using UserManagement.Blazor.Providers
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavManager
+@inject AuthenticationService Auth
+
+<PageTitle>Users</PageTitle>
+
+<h2>User List</h2>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Forename</th>
+                <th>Surname</th>
+                <th>Email</th>
+                <th>Date Of Birth</th>
+                <th>Account Active</th>
+                <th style="width: 1px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (users != null && users.Any())
+            {
+                foreach (var user in users)
+                {
+                    <tr>
+                        <td>@user.Id</td>
+                        <td>@user.Forename</td>
+                        <td>@user.Surname</td>
+                        <td>@user.Email</td>
+                        <td>@(user.DateOfBirth.HasValue? user.DateOfBirth.Value.ToShortDateString() : "N/A")</td>
+                        <td>@(user.IsActive ? "Yes" : "No")</td>
+                        <td>
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown"
+                                        aria-expanded="false" id="btnToggleActions-@user.Id">
+                                    Actions
+                                </button>
+                                <ul class="dropdown-menu text-center" aria-labelledby="btnToggleActions-@user.Id">
+                                    <li><NavLink href="@($"/users/{user.Id}")" class="dropdown-item">View</NavLink></li>
+                                    <li><NavLink href="@($"/users/edit/{user.Id}")" class="dropdown-item">Edit</NavLink></li>
+                                    <li>
+                                        <button @onclick="@(() => DeleteUser(user.Id))" type="button" class="dropdown-item">Delete</button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="7" class="text-center">
+                        @if (users == null)
+                        {
+                            <span>Loading...</span>
+                        }
+                        else
+                        {
+                            <span>No Users found.</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+    <nav aria-label="Logs Filter" class="btn-group">
+        <button class="btn btn-outline-primary @(string.IsNullOrEmpty(accountActivityFilter) ? "active" : "")" @onclick="@(() => GetUsers(null))">
+            Show All
+        </button>
+        <button class="btn btn-outline-primary @(accountActivityFilter == "active" ? "active" : "")" @onclick="@(() => GetUsers("active"))">
+            Active Only
+        </button>
+        <button class="btn btn-outline-primary @(accountActivityFilter == "inActive" ? "active" : "")" @onclick="@(() => GetUsers("inActive"))">
+            Non Active
+        </button>
+    </nav>
+
+    <NavLink href="users/add" class="btn btn-primary">
+        Add User
+    </NavLink>
+</div>
+
+@code {
+    private IEnumerable<User>? users;
+    private string? accountActivityFilter = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.CheckLoginStatusAsync();
+        if (!Auth.IsLoggedIn)
+        {
+            NavManager.NavigateTo("/login", false);
+            return; // exit to prevent loading page content
+        }
+
+        await GetUsers(null);
+    }
+
+    private async Task SetAuthorizationHeaderAsync()
+    {
+        // Get the token from session storage via JSRuntime.
+        var authToken = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "authToken");
+        if (!string.IsNullOrEmpty(authToken))
+        {
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authToken);
+        }
+    }
+
+    private async Task GetUsers(string? filter)
+    {
+        // Store the current filter
+        accountActivityFilter = filter;
+
+        // Fetch users from the API with the specified filter
+        try
+        {
+            var apiEndpoint = $"api/users?accountActivityFilter={filter}";
+            users = await Http.GetFromJsonAsync<IEnumerable<User>>(apiEndpoint);
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.Error.WriteLine($"Error fetching users: {ex.Message}");
+            users = Enumerable.Empty<User>();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task DeleteUser(string userId)
+    {
+        // Confirm deletion with the user
+        var deleteConfirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete user with ID {userId}?");
+        if (!deleteConfirmed) return;
+
+        try
+        {
+            // Call the API to delete the user
+            var apiEndpoint = $"api/users/{userId}";
+            var response = await Http.DeleteAsync(apiEndpoint);
+
+            // If successful, reload the user list with the current filter
+            if (response.IsSuccessStatusCode) await GetUsers(accountActivityFilter);
+            else
+            {
+                Console.Error.WriteLine($"Error deleting user with ID {userId}: {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error deleting user with ID {userId}: {ex.Message}");
+            return;
+        }
+    }
+}

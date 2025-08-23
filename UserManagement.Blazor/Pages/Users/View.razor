@@ -1,0 +1,304 @@
+﻿@page "/users/{UserId}"
+
+@using UserManagement.Data.Models
+@using UserManagement.Blazor.Models
+@using UserManagement.Blazor.Providers
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JSRuntime
+@inject AuthenticationService Auth
+
+<h2>View User</h2>
+
+<div>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Forename</th>
+                <th>Surname</th>
+                <th>Email</th>
+                <th>Date Of Birth</th>
+                <th>Account Active</th>
+                <th style="width: 1px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (user != null)
+            {
+                    <tr>
+                        <td>
+                            @user.Id
+                        </td>
+                        <td>
+                            @user.Forename
+                        </td>
+                        <td>
+                            @user.Surname
+                        </td>
+                        <td>
+                            @user.Email
+                        </td>
+                        <td>
+                            @(user.DateOfBirth.HasValue? user.DateOfBirth.Value.ToShortDateString() : "N/A")
+                        </td>
+                        <td>
+                            @(user.IsActive ? "Yes" : "No")
+                        </td>
+                        <td>
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown"
+                                        aria-expanded="false" id="btnToggleActions">
+                                    Actions
+                                </button>
+                                <ul class="dropdown-menu text-center" aria-labelledby="btnToggleActions">
+                                    <li><NavLink href="@($"/users/edit/{user.Id}")" class="dropdown-item">Edit</NavLink></li>
+                                    <li>
+                                        <button onclick="@(() => DeleteUser(user.Id))" type="button" class="dropdown-item">Delete</button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Performed Action</th>
+                <th>TimeStamp</th>
+                <th style="width: 1px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (paginatedLogs != null && paginatedLogs.Logs != null && paginatedLogs.Logs.Any())
+            {
+                @foreach (var log in paginatedLogs.Logs)
+                {
+                    <tr>
+                        <td>
+                            @log.PerformedAction
+                        </td>
+                        <td>
+                            @log.TimeStamp.ToString("yyyy-MM-dd HH:mm:ss")
+                        </td>
+                        <td>
+                            <NavLink href="@($"/logs/{log.Id}")" class="btn">View</NavLink>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="5" class="text-center">
+                        @if (paginatedLogs == null)
+                        {
+                            <span>Loading...</span>
+                        }
+                        else
+                        {
+                            <span>No logs found.</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+    <nav aria-label="Logs Filter" class="btn-group">
+        <button class="btn btn-outline-primary @(string.IsNullOrEmpty(logsActionFilter) ? "active" : "")" @onclick="@(() => GoToPage(1, null))">Show All</button>
+        <button class="btn btn-outline-primary @(logsActionFilter == "View User" ? "active" : "")" @onclick="@(() => GoToPage(1, "View User"))">View</button>
+        <button class="btn btn-outline-primary @(logsActionFilter == "Add User" ? "active" : "")" @onclick="@(() => GoToPage(1, "Add User"))">Add</button>
+        <button class="btn btn-outline-primary @(logsActionFilter == "Edit User" ? "active" : "")" @onclick="@(() => GoToPage(1, "Edit User"))">Edit</button>
+        <button class="btn btn-outline-primary @(logsActionFilter == "Delete User" ? "active" : "")" @onclick="@(() => GoToPage(1, "Delete User"))">Delete</button>
+    </nav>
+
+    @if (paginatedLogs?.Pagination != null && paginatedLogs.Pagination.TotalPages > 1)
+    {
+        <nav aria-label="Page navigation">
+            <ul class="pagination mb-0 flex-wrap justify-content-center">
+                <li class="page-item @(paginatedLogs.Pagination.CurrentPage == 1 ? "disabled" : "")">
+                    <button class="page-link" @onclick="@(() => GoToPage(paginatedLogs.Pagination.CurrentPage - 1, logsActionFilter))" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </button>
+                </li>
+
+                @foreach (var pageNumber in GetPageNumbers(paginatedLogs.Pagination.CurrentPage, paginatedLogs.Pagination.TotalPages))
+                {
+                    @if (pageNumber == -1)
+                    {
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    }
+                    else
+                    {
+                        <li class="page-item @(pageNumber == paginatedLogs.Pagination.CurrentPage ? "active" : "")">
+                            <button class="page-link" @onclick="@(() => GoToPage(pageNumber, logsActionFilter))">@pageNumber</button>
+                        </li>
+                    }
+                }
+
+                <li class="page-item @(paginatedLogs.Pagination.CurrentPage == paginatedLogs.Pagination.TotalPages ? "disabled" : "")">
+                    <button class="page-link" @onclick="@(() => GoToPage(paginatedLogs.Pagination.CurrentPage + 1, logsActionFilter))" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? UserId { get; set; }
+
+    private User? user;
+    private PaginatedLogs? paginatedLogs;
+    private string? logsActionFilter = null;
+    private const int logsAmount = 10;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.CheckLoginStatusAsync();
+        if (!Auth.IsLoggedIn)
+        {
+            NavManager.NavigateTo("/login", false);
+            return; // exit to prevent loading page content
+        }
+
+        if (UserId != null)
+        {
+            // Fetch the user details
+            await GetUser(UserId);
+            // Fetch the initial logs without any filter
+            await GoToPage(1, logsActionFilter);
+        }
+    }
+
+    private async Task GetUser(string userId)
+    {
+        try
+        {
+            // Get the user data from the API
+            user = await Http.GetFromJsonAsync<User>($"api/users/{userId}");
+
+            // If the user is not found, navigate to the Users page and return an empty User object
+            if (user == null)
+            {
+                Console.Error.WriteLine($"User with ID {userId} not found.");
+                NavManager.NavigateTo("/Users");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log the error and navigate to the Users page
+            Console.Error.WriteLine($"Error fetching user with ID {userId}: {ex.Message}");
+            NavManager.NavigateTo("/Users");
+        }
+    }
+
+    private async Task DeleteUser(string userId)
+    {
+        // Confirm deletion with the user
+        var deleteConfirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete user with ID {userId}?");
+        if (!deleteConfirmed) return;
+
+        try
+        {
+            // Call the API to delete the user
+            var apiEndpoint = $"api/users/{userId}";
+            var response = await Http.DeleteAsync(apiEndpoint);
+
+            // If successful, reload the user list with the current filter
+            if (response.IsSuccessStatusCode) NavManager.NavigateTo("/Users");
+            else
+            {
+                Console.Error.WriteLine($"Error deleting user with ID {userId}: {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error deleting user with ID {userId}: {ex.Message}");
+            return;
+        }
+    }
+
+    private async Task GoToPage(int page, string? filter)
+    {
+        // Prevent multiple simultaneous loads
+        if (isLoading) return;
+
+        isLoading = true;
+        paginatedLogs = null; // Clear logs to show loading state
+        logsActionFilter = filter;
+
+        try
+        {
+            // Fetch logs with pagination and optional filter
+            var apiEndpoint = $"api/logs/user/{UserId}?logsActionFilter={filter}&page={page}&logsAmount={logsAmount}";
+            paginatedLogs = await Http.GetFromJsonAsync<PaginatedLogs>(apiEndpoint);
+        }
+        catch (HttpRequestException ex)
+        {
+            // Log the error and set logs to an empty list
+            Console.Error.WriteLine($"Error fetching logs: {ex.Message}");
+            paginatedLogs = new();
+        }
+        finally
+        {
+            // Ensure loading state is reset
+            isLoading = false;
+        }
+    }
+
+    private IEnumerable<int> GetPageNumbers(int currentPage, int totalPages)
+    {
+        // Generate a list of page numbers to display in pagination
+        const int maxPagesToShow = 5;
+        var pages = new List<int>();
+
+        // If total pages are less than or equal to maxPagesToShow, show all pages
+        if (totalPages <= maxPagesToShow)
+        {
+            for (int i = 1; i <= totalPages; i++)
+            {
+                pages.Add(i);
+            }
+        }
+        else
+        {
+            // Show current page, two before and two after, with ellipses if necessary
+            var startPage = Math.Max(1, currentPage - 2);
+            var endPage = Math.Min(totalPages, currentPage + 2);
+
+            // Adjust start and end if they are too close to the edges
+            if (startPage > 1)
+            {
+                pages.Add(1);
+                if (startPage > 2) pages.Add(-1); // Ellipsis
+            }
+
+            // Add the range of pages around the current page
+            for (int i = startPage; i <= endPage; i++)
+            {
+                pages.Add(i);
+            }
+
+            // Add the last page if it's not already included
+            if (endPage < totalPages)
+            {
+                if (endPage < totalPages - 1) pages.Add(-1); // Ellipsis
+                pages.Add(totalPages);
+            }
+        }
+
+        return pages;
+    }
+}

@@ -1,0 +1,160 @@
+﻿@page "/Users/add"
+@page "/Users/edit/{UserId}"
+
+@using UserManagement.Data.Models
+@using UserManagement.Blazor.Models
+@using UserManagement.Blazor.Providers
+@inject NavigationManager NavManager
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject AuthenticationService Auth
+
+<div class="d-grid justify-content-center mb-2">
+    <h2 class="text-center">@(UserId == null ? "Add User" : "Edit User")</h2>
+
+    @if (userModel == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <EditForm Model="@userModel" OnValidSubmit="HandleSubmit" class="d-grid border p-4 rounded-3 shadow gap-2">
+            <DataAnnotationsValidator />
+
+            <div class="form-group">
+                <label for="forename" class="form-label">Forename</label>
+                <InputText id="forename" @bind-Value="userModel.Forename" class="form-control" />
+                <ValidationMessage For="@(() => userModel.Forename)" class="text-danger" />
+            </div>
+
+            <div>
+                <label for="surname" class="form-label">Surname</label>
+                <InputText id="surname" @bind-Value="userModel.Surname" class="form-control" />
+                <ValidationMessage For="@(() => userModel.Surname)" class="text-danger" />
+            </div>
+
+            <div>
+                <label for="email" class="form-label">Email</label>
+                <InputText id="email" @bind-Value="userModel.Email" class="form-control" />
+                <ValidationMessage For="@(() => userModel.Email)" class="text-danger" />
+            </div>
+
+            <div class="form-check">
+                <InputCheckbox id="isActive" @bind-Value="userModel.IsActive" class="form-check-input" />
+                <label for="isActive" class="form-check-label">Is Active</label>
+            </div>
+
+            <div>
+                <label for="dateOfBirth">Date Of Birth</label>
+                <InputDate id="dateOfBirth" @bind-Value="userModel.DateOfBirth" class="form-control" />
+                <ValidationMessage For="@(() => userModel.DateOfBirth)" class="text-danger" />
+            </div>
+
+            <div class="d-flex gap-3 justify-content-end mt-2">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <NavLink href="/Users" class="btn btn-secondary">Cancel</NavLink>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? UserId { get; set; }
+
+    private User userModel = new User();
+    private Dictionary<string, string> validationErrors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.CheckLoginStatusAsync();
+        if (!Auth.IsLoggedIn)
+        {
+            NavManager.NavigateTo("/login", false);
+            return; // exit to prevent loading page content
+        }
+
+        // If an ID is provided in the URL, load the user's data
+        if (UserId != null) userModel = await GetUser(UserId);
+    }
+
+    private async Task HandleSubmit()
+    {
+        // Clear previous errors from both the client and API
+        validationErrors.Clear();
+
+        if (userModel == null) return;
+
+        // Call the method to send data to the API and get the response
+        var success = await SaveUser(userModel);
+
+        if (success) await JSRuntime.InvokeVoidAsync("history.back");
+        else StateHasChanged();
+    }
+
+    private async Task<User> GetUser(string userId)
+    {
+        try
+        {
+            // Get the user data from the API
+            User? user = await Http.GetFromJsonAsync<User>($"api/users/{userId}");
+
+            // If the user is not found, navigate to the Users page and return an empty User object
+            if (user == null)
+            {
+                Console.Error.WriteLine($"User with ID {userId} not found.");
+                NavManager.NavigateTo("/Users");
+                return new User();
+            }
+
+            return user;
+        }
+        catch (Exception ex)
+        {
+            // Log the error and navigate to the Users page
+            Console.Error.WriteLine($"Error fetching user with ID {userId}: {ex.Message}");
+            NavManager.NavigateTo("/Users");
+            return new User();
+        }
+    }
+
+    private async Task<bool> SaveUser(User user)
+    {
+        try
+        {
+            HttpResponseMessage response;
+            var apiEndpoint = "api/users";
+
+            // If an ID is provided, update the existing user; otherwise, create a new user
+            if (UserId != null) response = await Http.PutAsJsonAsync($"{apiEndpoint}/{UserId}", user);
+            else response = await Http.PostAsJsonAsync(apiEndpoint, user);
+
+            if (response.IsSuccessStatusCode) return true;
+
+            // If the response is not successful
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                // Deserialize the error response to get validation errors
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var apiErrors = System.Text.Json.JsonSerializer.Deserialize<APIErrorResponse>(jsonContent);
+
+                if (apiErrors?.errors != null)
+                {
+                    foreach (var error in apiErrors.errors)
+                    {
+                        validationErrors[error.Key] = error.Value[0];
+                    }
+                }
+            }
+            else validationErrors[""] = $"An unexpected error occurred: {response.StatusCode}";
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Network or server error: {ex.Message}");
+            validationErrors[""] = $"Network or server error: {ex.Message}";
+            return false;
+        }
+    }
+}

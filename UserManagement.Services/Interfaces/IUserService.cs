@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using UserManagement.Models;
+using UserManagement.Data.Models;
 
 namespace UserManagement.Services.Domain.Interfaces;
 
@@ -24,7 +24,7 @@ public interface IUserService
     /// </summary>
     /// <param name="user" ></param>
     /// <returns></returns>
-    Task<User?> GetByIdAsync(long id);
+    Task<User?> GetByIdAsync(string id);
 
     /// <summary>
     /// Add a new user
@@ -45,5 +45,5 @@ public interface IUserService
     /// </summary>
     /// <param name="id" ></param>
     /// <returns></returns>
-    Task DeleteAsync(long id);
+    Task DeleteAsync(string id);
 }

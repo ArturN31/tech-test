@@ -3,15 +3,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using UserManagement.Data;
-using UserManagement.Models;
+using UserManagement.Data.Models;
 using UserManagement.Services.Domain.Interfaces;
 
-namespace UserManagement.Services.Domain.Implementations;
+namespace UserManagement.Services.Implementations;
 
-public class UserService : IUserService
+public class UserService(IDataContext dataAccess) : IUserService
 {
-    private readonly IDataContext _dataAccess;
-    public UserService(IDataContext dataAccess) => _dataAccess = dataAccess;
+    private readonly IDataContext _dataAccess = dataAccess;
 
     /// <summary>
     /// Return users by active state
@@ -40,7 +39,7 @@ public class UserService : IUserService
     /// Retrieve user from memory by id
     /// <param name="id"></param>
     /// </summary>
-    public async Task<User?> GetByIdAsync(long id)
+    public async Task<User?> GetByIdAsync(string id)
     {
         return await _dataAccess.GetAll<User>()
             .FirstOrDefaultAsync(u => u.Id == id);
@@ -70,7 +69,7 @@ public class UserService : IUserService
     /// Delete user from memory
     /// <param name="user"></param>
     /// </summary>
-    public async Task DeleteAsync(long id)
+    public async Task DeleteAsync(string id)
     {
         var user = await GetByIdAsync(id);
         if (user != null)

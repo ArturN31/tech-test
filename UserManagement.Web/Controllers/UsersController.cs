@@ -1,31 +1,26 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using UserManagement.Models;
+using UserManagement.Data.Models;
 using UserManagement.Services.Domain.Interfaces;
 using UserManagement.Web.Models;
 using UserManagement.Web.Models.Logs;
 using UserManagement.Web.Models.Users;
 
-namespace UserManagement.WebMS.Controllers;
+namespace UserManagement.Web.Controllers;
 
 [Route("users")]
-public class UsersController : Controller
+public class UsersController(IUserService userService, ILogService logService) : Controller
 {
-    private readonly IUserService _userService;
-    private readonly ILogService _logService;
-    public UsersController(IUserService userService, ILogService logService)
-    {
-        _userService = userService;
-        _logService = logService;
-    }
+    private readonly IUserService _userService = userService;
+    private readonly ILogService _logService = logService;
 
     [HttpGet]
     public async Task<ViewResult> List(string? accountActivityFilter)
     {
         // If accountActivityFilter is null or empty, get all users
         // Otherwise, filter users based on the accountActivityFilter value
-        IEnumerable<Models.User> users = string.IsNullOrEmpty(accountActivityFilter)
+        var users = string.IsNullOrEmpty(accountActivityFilter)
             ? await _userService.GetAllAsync()
             : await _userService.FilterByActiveAsync(accountActivityFilter);
 
@@ -34,14 +29,14 @@ public class UsersController : Controller
             Id = p.Id,
             Forename = p.Forename,
             Surname = p.Surname,
-            Email = p.Email,
+            Email = p.Email!,
             IsActive = p.IsActive,
             DateOfBirth = p.DateOfBirth
         });
 
         var model = new UserListViewModel
         {
-            Items = items.ToList()
+            Items = [.. items]
         };
 
         return View(model);
@@ -49,10 +44,10 @@ public class UsersController : Controller
 
     // View a user
     [HttpGet("view/{id}")]
-    public async Task<IActionResult> View(long id, int page = 1, int logsAmount = 10)
+    public async Task<IActionResult> View(string id, int page = 1, int logsAmount = 10)
     {
         // Fetch the user by id using the user service
-        User? requiredUser = await _userService.GetByIdAsync(id);
+        var requiredUser = await _userService.GetByIdAsync(id);
 
         if (requiredUser == null)
         {
@@ -61,7 +56,7 @@ public class UsersController : Controller
         }
 
         // Log the action of viewing a user
-        Log? newLog = new Log
+        var newLog = new Log
         {
             UserId = requiredUser.Id,
             PerformedAction = "View User",
@@ -69,10 +64,10 @@ public class UsersController : Controller
         };
         await _logService.AddLogAsync(newLog);
 
-        int totalUsersLogsCount = await _logService.CountUsersLogsAsync(requiredUser.Id);
+        var totalUsersLogsCount = await _logService.CountUsersLogsAsync(requiredUser.Id);
         IEnumerable<Log> paginatedUsersLogs = await _logService.GetUsersLogsPaginatedAsync(requiredUser.Id, page, logsAmount);
 
-        int totalPages = (int)Math.Ceiling((double)totalUsersLogsCount / logsAmount);
+        var totalPages = (int)Math.Ceiling((double)totalUsersLogsCount / logsAmount);
 
         // Create a UserListItemViewModel to display the user's details
         var viewUserModel = new UserListItemViewModel
@@ -80,7 +75,7 @@ public class UsersController : Controller
             Id = requiredUser.Id,
             Forename = requiredUser.Forename,
             Surname = requiredUser.Surname,
-            Email = requiredUser.Email,
+            Email = requiredUser.Email!,
             IsActive = requiredUser.IsActive,
             DateOfBirth = requiredUser.DateOfBirth
         };
@@ -99,13 +94,13 @@ public class UsersController : Controller
         var viewLogModel = new UserDetailsViewModel
         {
             User = viewUserModel,
-            Logs = paginatedUsersLogs.Select(log => new LogListItemViewModel
+            Logs = [.. paginatedUsersLogs.Select(log => new LogListItemViewModel
             {
                 Id = log.Id,
                 UserId = log.UserId,
                 PerformedAction = log.PerformedAction,
                 TimeStamp = log.TimeStamp
-            }).ToList(),
+            })],
             Pagination = paginationViewModel
         };
 
@@ -129,7 +124,7 @@ public class UsersController : Controller
         if (!ModelState.IsValid)
         {
             return View(newUserData);
-        } 
+        }
 
         // If model state is valid, create a new user and add it to the service
         var newUser = new User
@@ -144,7 +139,7 @@ public class UsersController : Controller
         await _userService.AddAsync(newUser);
 
         // Log the action of adding a new user
-        Log newLog = new Log
+        var newLog = new Log
         {
             UserId = newUser.Id,
             PerformedAction = "Add User",
@@ -159,7 +154,7 @@ public class UsersController : Controller
 
     // Edit a user
     [HttpGet("edit/{id}")]
-    public async Task<IActionResult> Edit(long id)
+    public async Task<IActionResult> Edit(string id)
     {
         // Fetch the user by id using the user service
         User? requiredUser = await _userService.GetByIdAsync(id);
@@ -176,7 +171,7 @@ public class UsersController : Controller
             Id = requiredUser.Id,
             Forename = requiredUser.Forename,
             Surname = requiredUser.Surname,
-            Email = requiredUser.Email,
+            Email = requiredUser.Email!,
             IsActive = requiredUser.IsActive,
             DateOfBirth = requiredUser.DateOfBirth
         };
@@ -189,7 +184,7 @@ public class UsersController : Controller
 
     [HttpPost("edit/{id}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(long id, UserListItemViewModel newUserData)
+    public async Task<IActionResult> Edit(string id, UserListItemViewModel newUserData)
     {
         // If model state is invalid, return the view with the current user model
         if (!ModelState.IsValid)
@@ -207,7 +202,7 @@ public class UsersController : Controller
         }
 
         // Log the action of editing a user
-        Log newLog = new Log
+        var newLog = new Log
         {
             UserId = existingUser.Id,
             PerformedAction = "Edit User",
@@ -232,7 +227,7 @@ public class UsersController : Controller
 
     [HttpPost("delete/{id}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(long id)
+    public async Task<IActionResult> Delete(string id)
     {
         // Fetch the user by id using the user service
         User? existingUser = await _userService.GetByIdAsync(id);
@@ -244,7 +239,7 @@ public class UsersController : Controller
         }
 
         // Log the action of deleting a user
-        Log newLog = new Log
+        var newLog = new Log
         {
             UserId = existingUser.Id,
             PerformedAction = "Delete User",

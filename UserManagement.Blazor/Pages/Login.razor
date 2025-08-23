@@ -1,0 +1,74 @@
+﻿@page "/login"
+@using UserManagement.Blazor.Models
+@using UserManagement.Blazor.Models.View
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavManager
+
+<div class="d-grid justify-content-center mb-2">
+    <h3 class="text-center">Login</h3>
+
+    <EditForm Model="login" OnValidSubmit="HandleSubmit" class="d-grid border p-4 rounded-3 shadow gap-2">
+        <DataAnnotationsValidator />
+
+        <div class="form-group">
+            <label for="email" class="form-label">Email</label>
+            <InputText id="email" class="form-control" @bind-Value="login.Email"/>
+            <ValidationMessage For="@(() => login.Email)" class="text-danger" />
+        </div>
+
+        <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <InputText id="password" type="password" class="form-control" @bind-Value="login.Password" />
+            <ValidationMessage For="@(() => login.Password)" class="text-danger" />
+        </div>
+
+        <div class="d-flex gap-3 justify-content-end mt-2">
+            <button type="submit" class="btn btn-primary">Login</button>
+            <button type="button" class="btn btn-secondary" @onclick="@(() => NavManager.NavigateTo("/"))">Cancel</button>
+        </div>
+    </EditForm>
+
+    <div class="border border-1 text-center mt-2 pt-3 bg-white">
+        <p>Email: ploew@example.com</p>
+        <p>Password: P@ssword1</p>
+    </div>
+</div>
+
+@code {
+    private Auth login = new Auth();
+    private string? errorMessage;
+
+    private async Task HandleSubmit()
+    {
+        // Call the login API
+        var apiEndpoint = "api/AccountManagement/login";
+
+        try
+        {
+            var loginResult = await Http.PostAsJsonAsync(apiEndpoint, login);
+
+            // Success - store token and navigate
+            if (loginResult.IsSuccessStatusCode)
+            {
+                var responseContent = await loginResult.Content.ReadFromJsonAsync<LoginResponse>();
+
+                if (responseContent != null)
+                {
+                    await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "authToken", responseContent.Token);
+                    await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "authTokenExpiry", responseContent.Expiration);
+                    NavManager.NavigateTo("/");
+                }
+            }
+            else
+            {
+                // Handle login failure, e.g., show error message
+                errorMessage = "Login failed. Please check your credentials.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred when logging in: {ex.Message}";
+        }
+    }
+}
