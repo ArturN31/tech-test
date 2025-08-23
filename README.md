@@ -1,3 +1,60 @@
+## Getting Started
+
+To run the application, you'll need to start two separate projects: the API and the Blazor app.
+
+### 1. Start the API Project
+
+Navigate to the `UserManagement.API` directory.
+Run the following command:
+
+`dotnet run --launch-profile "https"`
+
+### 2. Start the Blazor Project
+
+Navigate to the `UserManagement.Blazor` directory.
+Run the following command:
+
+`dotnet run --launch-profile "https"`
+
+Open https://localhost:7256 in your web browser.
+
+## Installed packages and tools
+
+### 1. UserManagement.API:
+
+#### Added Packages required for auth:
+
+- Microsoft.AspNetCore.Authentication.JwtBearer
+- Microsoft.AspNetCore.Identity.EntityFrameworkCore
+
+#### Added Packages required for db:
+
+- Microsoft.EntityFrameworkCore.SqlServer
+- Microsoft.EntityFrameworkCore.Design
+
+#### Added Tool required for db migrations:
+- dotnet-ef
+
+### 2. UserManagement.Blazor:
+
+#### Added Package required for auth:
+
+- Microsoft.AspNetCore.Components.Authorization
+
+#### Added Tool required for assets bundling:
+
+- BundlerMinifier.Core.Tool
+
+## Completed Tasks
+
+- Filters Section (Standard)
+- User Model Properties (Standard)
+- Actions Section (Standard)
+- Data Logging (Advanced)
+- Extend the Application (Expert)
+
+---
+
 # User Management Technical Exercise
 
 The exercise is an ASP.NET Core web application backed by Entity Framework Core, which faciliates management of some fictional users.
@@ -58,6 +115,7 @@ Add additional layers to the application that will ensure that it is scaleable w
 * Add CD pipelines to deploy the application to cloud infrastructure.
 * Add IaC to support easy deployment to new environments.
 * Introduce a message bus and/or worker to handle long-running operations.
+
 
 ## Additional Notes
 
