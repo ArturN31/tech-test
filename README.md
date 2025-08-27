@@ -1,15 +1,20 @@
 ## Getting Started
 
-To run the application, you'll need to start two separate projects: the API and the Blazor app.
+To run the application, you'll need to install the required tooling and start two separate projects: the API and the Blazor app.
 
-### 1. Start the API Project
+### 1. Install the static assets bundling tool
+Run the following command in the root directory: 
+
+`dotnet tool install --local BundlerMinifier.Core.Tool --version 7.6.5`
+
+### 2. Start the API Project
 
 Navigate to the `UserManagement.API` directory.
 Run the following command:
 
 `dotnet run --launch-profile "https"`
 
-### 2. Start the Blazor Project
+### 3. Start the Blazor Project
 
 Navigate to the `UserManagement.Blazor` directory.
 Run the following command:
